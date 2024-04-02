@@ -1,0 +1,208 @@
+In[1]:= (*Heat transfer with ambiant air*)
+\[Phi] = 10^-3;
+Cpa =1000;
+\[Beta] = 1/(273.15+30);
+\[Sigma] = 5.67 10^-8;
+\[Lambda]a = 0.026;
+\[Mu]a = 1.9 10^-5;
+\[Rho]a = 1.2 ;
+\[Nu]a = \[Mu]a/\[Rho]a;
+\[Epsilon] = 0.85;
+\[Alpha]a = \[Lambda]a/(\[Rho]a Cpa);
+Tair = 273.15+20;
+Tnerf =  273.15+50;
+Pr =\[Nu]a/\[Alpha]a;
+Ray = (9.81 \[Beta] \[Phi]^3 (Tnerf-Tair))/(\[Nu]a \[Alpha]a );
+Nu =(( 0.6 + 0.387 Ray^(1/6))/(1+(0.559/Pr)^(9/16))^(8/27))^2;
+(Nu \[Lambda]a)/\[Phi]
+(\[Pi] d 1)/((\[Pi] d^2)/4 1)
+(2 1 1)/(1 1 d)
+\[Sigma] (Tnerf^2+Tair^2)(Tnerf+Tair)
+Out[16]= 20.2338
+Out[17]= 4/d
+Out[18]= 2/d
+Out[19]= 6.65208
+\[Lambda] = 0.76;
+\[Rho] = 1030;
+h = 2 27;
+Cp = 3500;
+\[Alpha] = \[Lambda]/(\[Rho] Cp);
+\[Phi] = 10^-3;
+L = 0.5 10^-2;
+dp = 400 10^-6;(*diamètre du pulse*)
+tp = 10 400 10^-6;(*durée du pulse*)
+f = 10;(*fréquence de pulse*)
+Ep = 4 10^-3;(*énergie du pulse*)
+xp = (L-dp)/2;(*position axiale du début du pulse*)
+Vt = dp (\[Pi] \[Phi]^2)/4;(*volume de la tranche*)
+\[Delta] = 0.35;(*fraction de la tranche du nerf cylindrique dans laquelle le pulse arrive*)
+e[t_] = Ep/(tp \[Delta] Vt) If[Mod[t,1/f]<tp,1,0];
+m = 30;
+Troom = 20;
+Tini = 28;
+In[38]:= ratio=L/\[Phi];
+\[CapitalDelta] = \[Phi]/m;
+Bi = (\[CapitalDelta] h)/\[Lambda];
+\[Alpha]t = \[Alpha]/\[CapitalDelta]^2;
+L/\[CapitalDelta]
+n =Round[L/\[CapitalDelta],1];
+npd=Round[xp/\[CapitalDelta],1];
+npf = Round[(xp+dp)/\[CapitalDelta],1];
+mpd = Round[(\[Phi] -dp)/\[CapitalDelta],1];
+Out[42]= 150.
+In[47]:= index[x_]:=If[x<=n/2,Round[(m-1)-(x-npd) ((m-1)-mpd)/(n/2-npd),1],Round[mpd+(x-n/2) ((m-1)-mpd)/(npf-n/2),1]];
+Table[index[x],{x,npd,npf}]
+Out[48]= {29,27,25,24,22,20,18,20,22,24,25,27,29}
+In[49]:= mpd
+Out[49]= 18
+In[50]:= inc = {};
+For[i=1,i<n,i++,
+inc = Join[inc,Table[T[i,j][t],{j,1,m-1}]];
+]
+ci = {};
+For[i=1,i<npd,i++,
+ci = Join[ci,Table[T[i,j][0]==Tini,{j,1,m-1}]];
+]
+For[i=npd,i<=npf,i++,
+ci = Join[ci,Table[T[i,j][0]==Tini,{j,1,mpd-1}]];
+ci = Join[ci,Table[T[i,j][0]==Tini,{j,mpd,m-1}]];
+]
+For[i=npf+1,i<n,i++,
+ci = Join[ci,Table[T[i,j][0]==Tini,{j,1,m-1}]];
+]
+bc = Table[T[i,0][t]->(T[i,1][t]+Bi Troom)/(1+Bi),{i,1,n-1}];
+bc = Join[bc,Table[T[i,m][t]->(T[i,m-1][t]+Bi Troom)/(1+Bi),{i,1,n-1}]];
+bc = Join[bc,Table[T[0,j][t]->T[1,j][t],{j,1,m-1}]];
+bc = Join[bc,Table[T[n,j][t]->T[n-1,j][t],{j,1,m-1}]];
+In[60]:= eq = {};
+For[i=1,i<npd,i++,
+eq = Join[eq,Table[T[i,j]'[t]== \[Alpha]t (T[i+1,j][t]+T[i-1,j][t]-2T[i,j][t]+T[i,j+1][t]+T[i,j-1][t]-2T[i,j][t]),{j,1,m-1}]];
+];
+For[i=npd,i<=npf,i++,
+eq = Join[eq,Table[T[i,j]'[t]== \[Alpha]t (T[i+1,j][t]+T[i-1,j][t]-2T[i,j][t]+T[i,j+1][t]+T[i,j-1][t]-2T[i,j][t]),{j,1,index[i]-1}]];
+eq = Join[eq,Table[T[i,j]'[t]== \[Alpha]t (T[i+1,j][t]+T[i-1,j][t]-2T[i,j][t]+T[i,j+1][t]+T[i,j-1][t]-2T[i,j][t])+1/(\[Rho] Cp) Ep/(tp \[Delta] Vt) If[Mod[t,1/f]<tp,1,0],{j,index[i],m-1}]];
+];
+For[i=npf+1,i<n,i++,
+eq = Join[eq,Table[T[i,j]'[t]== \[Alpha]t (T[i+1,j][t]+T[i-1,j][t]-2T[i,j][t]+T[i,j+1][t]+T[i,j-1][t]-2T[i,j][t]),{j,1,m-1}]];
+];
+eqfull = Join[eq,ci]/.bc;
+sol=NDSolve[eqfull,inc,{t,0,3}][[1]];
+In[66]:= Contour[temps_]:=(
+datafull = {};
+bcbis = {T[0,0][t]->T[0,1][t],T[0,m][t]->T[0,m-1][t],T[n,0][t]->T[n,1][t],T[n,m][t]->T[n,m-1][t]};
+For[i = 0, i<= n, i++,
+datafull = Join[datafull,Table[{1000 i \[CapitalDelta],1000j \[CapitalDelta],T[i,j][t]/.bcbis/.bc/.sol/.t->temps},{j,0,m}]];
+];
+buff=ListContourPlot[datafull,Frame -> True ,PlotRange ->All, Axes -> False, FrameLabel->{"x (mm)","y (mm)"},BaseStyle->{FontFamily->"Times",FontSize->12},ColorFunctionScaling->False,PlotRange->All,InterpolationOrder->3,Contours->20,ColorFunction->ColorData[{"Rainbow",{Troom,60}}],ImageSize->700,AspectRatio->m/n,PlotLabel->"T (°C)",ContourLines-> False];
+Legended[buff,BarLegend[{"Rainbow",{Troom,60}}]]
+)
+Contour[2+tp]
+Out[138]= 
+In[70]:= pix = 0.073 10^-3;
+Tcentre[t_]=T[n/2,m][t]/.bc/.sol;
+Tbord[t_]=T[npf,m][t]/.bc/.sol;
+T1pix[t_]=T[npf+Floor[pix/\[CapitalDelta]],m][t]/.bc/.sol;
+Plot[Tcentre[t],{t,0,3},Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"t (s)","T (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Black,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{"Center"},LabelStyle->{11}],Right]];
+Plot[Tbord[t],{t,0,3},Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"t (s)","T (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Red,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{"Border"},LabelStyle->{11}],Right]];
+Plot[T1pix[t],{t,0,3},Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"t (s)","T (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Orange,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{"One pixel from the border"},LabelStyle->{11}],Right]];
+Show[%%%,%%,%]
+Out[77]= Center
+Border
+One pixel from the border
+
+
+In[78]:= Plot[T1pix[t],{t,0,3},Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"t (s)","T (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Orange,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{"Measured temperature"},LabelStyle->{11}],Top]]
+Out[78]= Measured temperature
+
+
+
+In[77]:= (*nouveaux graphes*)
+In[79]:= depth = 0;(*profondeur en microns*)
+Temp[t_]=T[n/2,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol;
+data0=Table[{i,Temp[(i-1) 1/f+tp]-Temp[(i-1) 1/f]},{i,1,3/(1/f)-1}];
+depth = 100;(*profondeur en microns*)
+Temp[t_]=T[n/2,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol;
+data100=Table[{i,Temp[(i-1) 1/f+tp]-Temp[(i-1) 1/f]},{i,1,3/(1/f)-1}];
+depth = 200;(*profondeur en microns*)
+Temp[t_]=T[n/2,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol;
+data200=Table[{i,Temp[(i-1) 1/f+tp]-Temp[(i-1) 1/f]},{i,1,3/(1/f)-1}];
+depth = 300;(*profondeur en microns*)
+Temp[t_]=T[n/2,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol;
+data300=Table[{i,Temp[(i-1) 1/f+tp]-Temp[(i-1) 1/f]},{i,1,3/(1/f)-1}];
+depth = 400;(*profondeur en microns*)
+Temp[t_]=T[n/2,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol;
+data400=Table[{i,Temp[(i-1) 1/f+tp]-Temp[(i-1) 1/f]},{i,1,3/(1/f)-1}];
+depth = 500;(*profondeur en microns*)
+Temp[t_]=T[n/2,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol;
+data500=Table[{i,Temp[(i-1) 1/f+tp]-Temp[(i-1) 1/f]},{i,1,3/(1/f)-1}];
+In[97]:= ListPlot[data0,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","Subscript[T, pulse]-Subscript[T, 0] (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Red,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[0], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data100,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","Subscript[T, pulse]-Subscript[T, 0] (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Orange,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[100], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data200,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","Subscript[T, pulse]-Subscript[T, 0] (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Yellow,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[200], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data300,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","Subscript[T, pulse]-Subscript[T, 0] (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Green,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[300], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data400,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","Subscript[T, pulse]-Subscript[T, 0] (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Blue,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[400], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data500,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","Subscript[T, pulse]-Subscript[T, 0] (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Black,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[500], " \[Mu]m"]},LabelStyle->{11}],Right]];
+Show[%%%%%%,%%%%%,%%%%,%%%,%%,%,PlotRange-> {All,{0,11}}]
+Out[103]= Depth : 0 \[Mu]m
+Depth : 100 \[Mu]m
+Depth : 200 \[Mu]m
+Depth : 300 \[Mu]m
+Depth : 400 \[Mu]m
+Depth : 500 \[Mu]m
+
+
+In[104]:= profil[npulse_,depth_]:=(
+dist = 2 10^-3;
+time1 =npulse/f;
+data=Table[{10^3 (i-n/2) \[CapitalDelta],T[i,m-Round[depth 10^-6/\[CapitalDelta],1]][t]/.bc/.sol/.t->time1},{i,Round[n/2-dist/\[CapitalDelta],1],Round[n/2+dist/\[CapitalDelta],1]}];
+grprofile[npulse]=ListPlot[data,Joined-> True,Axes-> False, Frame-> True,PlotRange-> {All,{0,60}},AspectRatio->0.7,FrameLabel->{"z (mm)","T (°C)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Orange,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[depth], " \[Mu]m"]},LabelStyle->{11}],Right]]
+)
+In[132]:= profil[21,200]
+prof[z_]=Interpolation[data][z];
+dersec[z_] =prof''[z]; 
+width =2 z/.FindRoot[dersec[z],{z,0.1}];
+(prof[0]-prof[width/2])/(width/2)
+Out[132]= Depth : 200 \[Mu]m
+Out[136]= 16.3853
+(* Spatial gradient computation based on FWHM definition *)
+gradientbis[npulse_,depth_]:=
+(
+profil[npulse,depth];
+prof[z_]=Interpolation[data][z];
+Thalf = (prof[0]+prof[data[[1,1]]])/2;
+width =2 Abs[z/.FindRoot[prof[z]-Thalf,{z,0.1}]];
+(prof[0]-prof[data[[1,1]]])/width
+)
+(* Spatial gradient computation based on inflexion points, which are close to HM points *)
+gradient[npulse_,depth_]:=
+(
+profil[npulse,depth];
+prof[z_]=Interpolation[data][z];
+dersec[z_] =prof''[z]; 
+width =2 z/.FindRoot[dersec[z],{z,0.1}];
+(prof[0]-prof[width/2])/(width/2)
+)
+In[112]:= gradient[30,400]
+gradientbis[30,400]
+Out[112]= 11.3495
+Out[113]= 13.1915
+In[114]:= tevgrad[depth_]:=
+(
+Table[{i,gradientbis[i,depth]},{i,1,30}]
+)
+In[115]:= data0 =tevgrad[0];
+data100 =tevgrad[100];
+data200 =tevgrad[200];
+data300 =tevgrad[300];
+data400 =tevgrad[400];
+In[126]:= ListPlot[data0,Joined-> False,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","T (°C/mm)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Red,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[0], " \[Mu]m"]},LabelStyle->{11}],Right]]; (*change Joined-> False to True if willing to have full curve*)
+ListPlot[data100,Joined-> False,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","gradT (°C/mm)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Orange,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[100], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data200,Joined-> False,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","gradT (°C/mm)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Yellow,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[200], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data300,Joined-> False,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","gradT (°C/mm)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Green,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[300], " \[Mu]m"]},LabelStyle->{11}],Right]];
+ListPlot[data400,Joined-> False,Axes-> False, Frame-> True,PlotRange-> All,AspectRatio->0.7,FrameLabel->{"pulse (-)","gradT (°C/mm)"},BaseStyle->{FontFamily->"Times",FontSize->14},PlotStyle->{Blue,Thickness[0.006]} , PlotLegends->Placed[LineLegend[{StringJoin["Depth : ",ToString[400], " \[Mu]m"]},LabelStyle->{11}],Right]];
+Show[%%%%%,%%%%,%%%,%%,%,PlotRange-> All]
+Out[131]= Depth : 0 \[Mu]m
+Depth : 100 \[Mu]m
+Depth : 200 \[Mu]m
+Depth : 300 \[Mu]m
+Depth : 400 \[Mu]m
+
